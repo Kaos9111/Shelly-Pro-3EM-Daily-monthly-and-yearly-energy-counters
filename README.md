@@ -2,8 +2,9 @@
 
 
 
-The Script is made for the Shelly Pro 3 EM energy meter with Firmware 1.4.4
-These script might also work on other Shelly devices, but I cannot confirm this as I do not own them.
+The Script is made for the Shelly Pro 3 EM energy meter with Firmware 1.4.4.
+
+It might also work on other Shelly devices, but I cannot confirm this as I do not own them.
 
 
 The script continuously measures the energy consumption of a Shelly device and stores the values for daily, monthly, and yearly consumption. 
