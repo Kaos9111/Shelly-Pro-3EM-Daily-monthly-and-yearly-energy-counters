@@ -54,4 +54,4 @@ Important:
 If you have already created components, change the component ID (200) in the script to a different value. The script will create these starting from the first number +1 and +2.
 
 
->>>>>>>>>> The script is still in its early stages and currently offers only basic functions. An expansion is planned. <<<<<<<<<<
+>>>>>>>>>> The script is still in its early stages and currently offers only basic functions. An expansion is planned. 
