@@ -1,4 +1,9 @@
-// pro3em v1.0
+//
+//
+// for shelly pro3em v1.4.4 - in progress version 0.1
+//
+//
+//
 
 let energyConsumedWs = 0.0;
 let energyConsumedKWh = 0.0;
