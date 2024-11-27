@@ -35,4 +35,23 @@ Automatic Resets:
   <img width="1401" alt="image" src="https://github.com/user-attachments/assets/58d08d7c-33fb-49ec-a71f-995387e07009">
 
 
-The script is still in its early stages and currently offers only basic functions. An expansion is planned.
+
+# How to use it:
+
+Simply copy the script code into the Shelly code editor, give the script a name of your choice, save it, and start it. 
+<img width="1391" alt="image" src="https://github.com/user-attachments/assets/71ef8725-e463-44cc-ab15-64d784d55420">
+
+Set it to start automatically on reboot.
+<img width="250" alt="image" src="https://github.com/user-attachments/assets/1385ab48-0076-43d0-b457-963026b35612">
+
+
+The required helpers will be created automatically.
+
+You can easily make some adjustments by modifying the variables.
+
+
+Important: 
+If you have already created components, change the component ID (200) in the script to a different value. The script will create these starting from the first number +1 and +2.
+
+
+>>>>>>>>>> The script is still in its early stages and currently offers only basic functions. An expansion is planned. <<<<<<<<<<
