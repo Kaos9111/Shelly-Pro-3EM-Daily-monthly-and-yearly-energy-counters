@@ -10,6 +10,8 @@ It might also work on other Shelly devices, but I cannot confirm this as I do no
 The script continuously measures the energy consumption of a Shelly device and stores the values for daily, monthly, and yearly consumption. 
 These consumption values are saved in virtual components that displayed as a sensor in Homeassistant. 
 
+(I know that the functionality can also be implemented in Home Assistant using helpers and scripts, but I prefer to have it directly on the Shelly as it offers some advantages.)
+
 <img width="255" alt="image" src="https://github.com/user-attachments/assets/74f0262f-93f3-4532-b1d8-7617a36c3410">  
 
 
