@@ -183,7 +183,7 @@ function updateConsumption() {
 checkAndCreateVirtualComponent("Tagesverbrauch", dailyComponentId, false, function() {
     checkAndCreateVirtualComponent("Monatsverbrauch", monthlyComponentId, false, function() {
         checkAndCreateVirtualComponent("Jahresverbrauch", yearlyComponentId, false, function() {
-            checkAndCreateVirtualComponent("Abrechnungszeitraum", periodComponentId, true, function() {  // Setze isField auf true
+            checkAndCreateVirtualComponent("Abrechnungszeitraum", periodComponentId, false, function() {  // Setze isField auf true wenn field (bug in HA)
                 LoadVirtualComponentValue(dailyComponentId, "Tagesverbrauch", function(value) {
                     energyConsumedDailyKWh = value;
                     LoadVirtualComponentValue(monthlyComponentId, "Monatsverbrauch", function(value) {
