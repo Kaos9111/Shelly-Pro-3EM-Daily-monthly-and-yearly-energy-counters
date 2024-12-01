@@ -1,7 +1,7 @@
 //
 // for shelly pro3em - FW: v1.4.4
 //
-// Kombizähler Script v0.2    
+// Kombizähler Script v0.1
 //            _
 //        V__(.)<
 //         \_)_)
@@ -18,191 +18,208 @@
 //
 
 
-// ////////////////// Customizable Variables //////////////////
+ursprung:
 
-// Component IDs
-let dailyComponentId   = 200;  // ID for daily consumption
-let monthlyComponentId = 201;  // ID for monthly consumption
-let yearlyComponentId  = 202;  // ID for yearly consumption
-let periodComponentId  = 203;  // ID for billing period
-
-// Component update
-let updateInterval      = 10;  // Interval for consumption update in seconds
-
-// Log
-let log                 = 1;  // Enables/disables console outputs
-let logInterval         = 300;  // Interval for console output in seconds
-
-// KVS Key Names for reset
-let dailyResetKVSKey    = "Tagesverbrauch_Reset";  // Key for daily reset
-let monthlyResetKVSKey  = "Monatsverbrauch_Reset"; // Key for monthly reset
-let yearlyResetKVSKey   = "Jahresverbrauch_Reset"; // Key for yearly reset
-
-// Static texts
-let scriptStartedText     = "Zähler Script gestartet";  // Script started message
-let componentCreatedText  = "Komponente erstellt, ID:"; // Component created message
-let componentFoundText    = "Komponente gefunden, ID:"; // Component found message
-let componentNotFoundText = "Komponente nicht gefunden, ID:"; // Component not found message
-let loadedValueText       = "Geladener Wert";           // Loaded value message
-let componentUpdatedText  = "Komponente aktualisiert";  // Component updated message
-let dailyResetText        = "Tagesverbrauch zurückgesetzt"; // Daily reset message
-let monthlyResetText      = "Monatsverbrauch zurückgesetzt"; // Monthly reset message
-let yearlyResetText       = "Jahresverbrauch zurückgesetzt"; // Yearly reset message
-
-//////////////////////////////////////////////////////////////////
+//
+//
+// for shelly pro3em v1.4.4 - in progress version 0.1
+//
+//
+//
 
 let energyConsumedWs = 0.0;
-let energyConsumedDailyKWh = 0.0;
+let energyConsumedKWh = 0.0;
 let energyConsumedMonthlyKWh = 0.0;
 let energyConsumedYearlyKWh = 0.0;
-let energyConsumedPeriodKWh = 0.0;
+
+let log = 1;  // Aktiviert/Deaktiviert Konsolenausgaben
+
+// Variablen für statische Texte und IDs
+let componentName = "Tagesverbrauch";  // Name der virtuellen Komponente
+let componentId = 200;  // ID der virtuellen Komponente
+let monthlyComponentName = "Monatsverbrauch";
+let yearlyComponentName = "Jahresverbrauch";
+
+let logInterval = 60;  // Intervall für Konsolenausgabe in Sekunden
+
+// KVS-Schlüssel für Reset
+let resetKVSKey = componentName + "_Reset";
+let monthlyResetKVSKey = monthlyComponentName + "_Reset";
+let yearlyResetKVSKey = yearlyComponentName + "_Reset";
+
+// Statische Texte
+let scriptStartedText = "Zähler Script gestartet";
+let componentCreatedText = "Komponente erstellt, ID:";
+let componentFoundText = "Komponente gefunden, ID:";
+let componentNotFoundText = "Komponente nicht gefunden, ID:";
+let loadedValueText = "Geladener wert";
+let componentUpdatedText = "Komponente aktualisiert";
+let resetText = componentName + " zurückgesetzt";
+let monthlyResetText = monthlyComponentName + " zurückgesetzt";
+let yearlyResetText = yearlyComponentName + " zurückgesetzt";
 
 // Konsolenausgabe beim Start des Scripts
 if (log > 0) print(scriptStartedText);
-
-// Letzter Zeitpunkt der Konsolenausgabe
+@@ -43,7 +64,7 @@ if (log > 0) print(scriptStartedText);
 let lastLogTime = 0;
 
 // Prüfen, ob die virtuelle Komponente bereits existiert
-function checkAndCreateVirtualComponent(componentName, componentId, isField, callback) {
+function checkAndCreateVirtualComponent(componentName, componentId, callback) {
     Shelly.call("Shelly.GetComponents", {
         "dynamic_only": true,
         "include": ["config"]
-    }, function(components) {
-        let componentExists = false;
-
-        for (let component of components.components) {
-            if (component.key === "number:" + componentId) {
-                componentExists = true;
-                break;
-            }
+@@ -58,7 +79,7 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
         }
 
         if (!componentExists) {
-            let componentConfig = {
+            Shelly.call("Virtual.Add", {
                 "type": "number",
                 "config": {
                     "name": componentName,
-                    "unit": "kWh",
-                    "value": 0.0,
+@@ -67,12 +88,13 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
                     "persisted": true,
                     "meta": {
                         "ui": {
-                            "view": isField ? "field" : "label",  // Wenn isField true, wird das Feld angezeigt
+                            "view": "label",
                             "unit": "kWh"
                         }
                     }
                 }
-            };
-            Shelly.call("Virtual.Add", componentConfig, function(result) {
+            }, function(result) {
                 if (log > 0) print(componentName, componentCreatedText, componentId);
                 callback();
             });
-        } else {
-            if (log > 0) print(componentName, componentFoundText, componentId);
-            callback();
-        }
-    });
-}
-
-// Funktion zum Setzen des Werts der virtuellen Komponente
-function SetVirtualComponentValue(componentId, value, callback) {
-    Shelly.call("Number.Set", {
+@@ -89,142 +111,95 @@ function SetVirtualComponentValue(componentId, value, callback) {
         "id": componentId,
         "value": value.toFixed(3)
     }, function(result) {
-        // Sicherstellen, dass result nicht null oder undefined ist
-        if (result && result.error_code !== 0) {
-            print("Fehler beim Setzen der virtuellen Komponente ID:", componentId);
-        }
         callback();
     });
 }
 
-function LoadVirtualComponentValue(componentId, componentName, callback) {
+// Funktion zum Laden des Werts der virtuellen Komponente
+function LoadVirtualComponentValue(componentId, callback) {
     Shelly.call("Number.GetStatus", {
         "id": componentId
     }, function(result) {
-        // Überprüfen, ob result nicht null oder undefined ist
         if (result && result.value !== undefined) {
-            if (log > 0) print(loadedValueText, componentName, ":", result.value.toFixed(3), "kWh");
             callback(result.value);
         } else {
-            if (log > 0) print(componentNotFoundText, componentId);
+            if (log > 0) print(componentName, componentNotFoundText, componentId);
             callback(0);
         }
     });
 }
 
+// Funktion zum Zurücksetzen des Zählers
+function resetCounterIfMidnight() {
+    Shelly.call("Sys.GetStatus", {}, function(status) {
+        let currentUnixTime = status.unixtime;
+        let currentDate = new Date(currentUnixTime * 1000);
+        let currentYear = currentDate.getFullYear();
+        let currentMonth = currentDate.getMonth() + 1;  // Monate sind von 0 bis 11
+        let currentDay = currentDate.getDate();
+        // Prüfen, ob der Zähler heute schon zurückgesetzt wurde
+        Shelly.call("KVS.Get", { key: resetKVSKey }, function(result, error_code) {
+            let lastResetDate = (error_code === 0) ? result.value : null;
+            if (lastResetDate !== currentDay) {
+                // Zähler zurücksetzen
+                energyConsumedKWh = 0.0;
+                SetVirtualComponentValue(componentId, energyConsumedKWh, function() {
+                    // Datum des Resets speichern (nur den aktuellen Tag)
+                    Shelly.call("KVS.Set", { key: resetKVSKey, value: currentDay }, function(result) {
+                        if (log > 0) print(componentName, resetText);
+                    });
+                });
+            }
+        });
+        // Monatsreset
+        Shelly.call("KVS.Get", { key: monthlyResetKVSKey }, function(result, error_code) {
+            let lastResetMonth = (error_code === 0) ? result.value : null;
+            if (lastResetMonth !== currentMonth) {
+                // Monatsverbrauch zurücksetzen
+                energyConsumedMonthlyKWh = 0.0;
+                SetVirtualComponentValue(componentId + 1, energyConsumedMonthlyKWh, function() {
+                    // Monat des Resets speichern
+                    Shelly.call("KVS.Set", { key: monthlyResetKVSKey, value: currentMonth }, function(result) {
+                        if (log > 0) print(monthlyComponentName, monthlyResetText);
+                    });
+                });
+            }
+        });
+        // Jahresreset
+        Shelly.call("KVS.Get", { key: yearlyResetKVSKey }, function(result, error_code) {
+            let lastResetYear = (error_code === 0) ? result.value : null;
+            if (lastResetYear !== currentYear) {
+                // Jahresverbrauch zurücksetzen
+                energyConsumedYearlyKWh = 0.0;
+                SetVirtualComponentValue(componentId + 2, energyConsumedYearlyKWh, function() {
+                    // Jahr des Resets speichern
+                    Shelly.call("KVS.Set", { key: yearlyResetKVSKey, value: currentYear }, function(result) {
+                        if (log > 0) print(yearlyComponentName, yearlyResetText);
+                    });
+                });
+            }
+        });
+    });
+}
 // Funktion zur regelmäßigen Konsolenausgabe basierend auf der Uptime
 function logBasedOnUptime() {
     Shelly.call("Sys.GetStatus", {}, function(status) {
         let currentUptime = status.uptime;
 
-        // Überprüfen, ob die Differenz zur letzten Konsolenausgabe das Log-Intervall überschreitet
         if (currentUptime - lastLogTime >= logInterval) {
             lastLogTime = currentUptime;
-            if (log > 0) {
-                print("Tagesverbrauch", componentUpdatedText, energyConsumedDailyKWh.toFixed(3), "KWh");
-                print("Monatsverbrauch", componentUpdatedText, energyConsumedMonthlyKWh.toFixed(3), "KWh");
-                print("Jahresverbrauch", componentUpdatedText, energyConsumedYearlyKWh.toFixed(3), "KWh");
-                print("Abrechnungszeitraum", componentUpdatedText, energyConsumedPeriodKWh.toFixed(3), "KWh");  // Neue Ausgabe
-            }
+            if (log > 0) print(componentName, componentUpdatedText, energyConsumedKWh.toFixed(3), " KWh");
+            if (log > 0) print(monthlyComponentName, componentUpdatedText, energyConsumedMonthlyKWh.toFixed(3), " KWh");
+            if (log > 0) print(yearlyComponentName, componentUpdatedText, energyConsumedYearlyKWh.toFixed(3), " KWh");
         }
     });
 }
 
-// Funktion zum regelmäßigen Verbrauchsupdate basierend auf der Leistung
-function updateConsumption() {
+// Timer-Handler für Messung und Speichern
+function timerHandler(user_data) {
     let em = Shelly.getComponentStatus("em", 0);
     if (typeof em.total_act_power !== 'undefined') {
         let power = em.total_act_power;
 
         if (power >= 0) {
-            energyConsumedWs = energyConsumedWs + power * (updateInterval / 2);  // Update alle 'updateInterval' Sekunden
+            energyConsumedWs = energyConsumedWs + power * 0.5;
         }
 
         let fullWh = Math.floor((energyConsumedWs / 3600));
         if (fullWh > 0) {
-            energyConsumedDailyKWh += fullWh / 1000;
+            energyConsumedKWh += fullWh / 1000;
             energyConsumedMonthlyKWh += fullWh / 1000;
             energyConsumedYearlyKWh += fullWh / 1000;
-            energyConsumedPeriodKWh += fullWh / 1000;  // In den Abrechnungszeitraum einfließen
             energyConsumedWs -= fullWh * 3600;
         }
 
-        // Speichern der Werte
-        SetVirtualComponentValue(dailyComponentId, energyConsumedDailyKWh, function() {});
-        SetVirtualComponentValue(monthlyComponentId, energyConsumedMonthlyKWh, function() {});
-        SetVirtualComponentValue(yearlyComponentId, energyConsumedYearlyKWh, function() {});
-        SetVirtualComponentValue(periodComponentId, energyConsumedPeriodKWh, function() {});  // Abrechnungszeitraum speichern
+        // Speichere den Wert alle 10 Sekunden
+        if (user_data.counter10++ >= 20) {
+            user_data.counter10 = 0;
+            SetVirtualComponentValue(componentId, energyConsumedKWh, function() {});
+            SetVirtualComponentValue(componentId + 1, energyConsumedMonthlyKWh, function() {});
+            SetVirtualComponentValue(componentId + 2, energyConsumedYearlyKWh, function() {});
+        }
     }
+    // Konsolenausgabe und Zurücksetzen
+    logBasedOnUptime();
+    resetCounterIfMidnight();
 }
 
-// Lade den Wert und starte die Timer
-checkAndCreateVirtualComponent("Tagesverbrauch", dailyComponentId, false, function() {
-    checkAndCreateVirtualComponent("Monatsverbrauch", monthlyComponentId, false, function() {
-        checkAndCreateVirtualComponent("Jahresverbrauch", yearlyComponentId, false, function() {
-            checkAndCreateVirtualComponent("Abrechnungszeitraum", periodComponentId, false, function() {  // Setze isField auf true wenn field (bug in HA)
-                LoadVirtualComponentValue(dailyComponentId, "Tagesverbrauch", function(value) {
-                    energyConsumedDailyKWh = value;
-                    LoadVirtualComponentValue(monthlyComponentId, "Monatsverbrauch", function(value) {
-                        energyConsumedMonthlyKWh = value;
-                        LoadVirtualComponentValue(yearlyComponentId, "Jahresverbrauch", function(value) {
-                            energyConsumedYearlyKWh = value;
-                            LoadVirtualComponentValue(periodComponentId, "Abrechnungszeitraum", function(value) {
-                                energyConsumedPeriodKWh = value;
-
-                                // Start Timer für Konsolenausgabe
-                                Timer.set(logInterval * 1000, true, logBasedOnUptime);
-
-                                // Start Timer für Verbrauchsaktualisierung
-                                Timer.set(updateInterval * 1000, true, updateConsumption);
-                            });
-                        });
+// Lade den Wert und starte den Timer
+checkAndCreateVirtualComponent(componentName, componentId, function() {
+    checkAndCreateVirtualComponent(monthlyComponentName, componentId + 1, function() {
+        checkAndCreateVirtualComponent(yearlyComponentName, componentId + 2, function() {
+            LoadVirtualComponentValue(componentId, function(value) {
+                energyConsumedKWh = value;
+                LoadVirtualComponentValue(componentId + 1, function(value) {
+                    energyConsumedMonthlyKWh = value;
+                    LoadVirtualComponentValue(componentId + 2, function(value) {
+                        energyConsumedYearlyKWh = value;
+                        let user_data = { counter10: 0 };
+                        Timer.set(1000, true, timerHandler, user_data);
                     });
                 });
             });
-        });
-    });
-});
