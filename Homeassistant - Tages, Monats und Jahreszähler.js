@@ -18,8 +18,6 @@
 //
 
 
-ursprung:
-
 //
 //
 // for shelly pro3em v1.4.4 - in progress version 0.1
@@ -60,7 +58,8 @@ let yearlyResetText = yearlyComponentName + " zurückgesetzt";
 
 // Konsolenausgabe beim Start des Scripts
 if (log > 0) print(scriptStartedText);
-@@ -43,7 +64,7 @@ if (log > 0) print(scriptStartedText);
+
+// Letzter Zeitpunkt der Konsolenausgabe
 let lastLogTime = 0;
 
 // Prüfen, ob die virtuelle Komponente bereits existiert
@@ -68,7 +67,14 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
     Shelly.call("Shelly.GetComponents", {
         "dynamic_only": true,
         "include": ["config"]
-@@ -58,7 +79,7 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
+    }, function(components) {
+        let componentExists = false;
+
+        for (let component of components.components) {
+            if (component.key === "number:" + componentId) {
+                componentExists = true;
+                break;
+            }
         }
 
         if (!componentExists) {
@@ -76,7 +82,8 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
                 "type": "number",
                 "config": {
                     "name": componentName,
-@@ -67,12 +88,13 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
+                    "unit": "kWh",
+                    "value": 0.0,
                     "persisted": true,
                     "meta": {
                         "ui": {
@@ -89,7 +96,16 @@ function checkAndCreateVirtualComponent(componentName, componentId, callback) {
                 if (log > 0) print(componentName, componentCreatedText, componentId);
                 callback();
             });
-@@ -89,142 +111,95 @@ function SetVirtualComponentValue(componentId, value, callback) {
+        } else {
+            if (log > 0) print(componentName, componentFoundText, componentId);
+            callback();
+        }
+    });
+}
+
+// Funktion zum Setzen des Werts der virtuellen Komponente
+function SetVirtualComponentValue(componentId, value, callback) {
+    Shelly.call("Number.Set", {
         "id": componentId,
         "value": value.toFixed(3)
     }, function(result) {
@@ -119,9 +135,11 @@ function resetCounterIfMidnight() {
         let currentYear = currentDate.getFullYear();
         let currentMonth = currentDate.getMonth() + 1;  // Monate sind von 0 bis 11
         let currentDay = currentDate.getDate();
+
         // Prüfen, ob der Zähler heute schon zurückgesetzt wurde
         Shelly.call("KVS.Get", { key: resetKVSKey }, function(result, error_code) {
             let lastResetDate = (error_code === 0) ? result.value : null;
+
             if (lastResetDate !== currentDay) {
                 // Zähler zurücksetzen
                 energyConsumedKWh = 0.0;
@@ -133,9 +151,11 @@ function resetCounterIfMidnight() {
                 });
             }
         });
+
         // Monatsreset
         Shelly.call("KVS.Get", { key: monthlyResetKVSKey }, function(result, error_code) {
             let lastResetMonth = (error_code === 0) ? result.value : null;
+
             if (lastResetMonth !== currentMonth) {
                 // Monatsverbrauch zurücksetzen
                 energyConsumedMonthlyKWh = 0.0;
@@ -147,9 +167,11 @@ function resetCounterIfMidnight() {
                 });
             }
         });
+
         // Jahresreset
         Shelly.call("KVS.Get", { key: yearlyResetKVSKey }, function(result, error_code) {
             let lastResetYear = (error_code === 0) ? result.value : null;
+
             if (lastResetYear !== currentYear) {
                 // Jahresverbrauch zurücksetzen
                 energyConsumedYearlyKWh = 0.0;
@@ -163,6 +185,7 @@ function resetCounterIfMidnight() {
         });
     });
 }
+
 // Funktion zur regelmäßigen Konsolenausgabe basierend auf der Uptime
 function logBasedOnUptime() {
     Shelly.call("Sys.GetStatus", {}, function(status) {
@@ -203,6 +226,7 @@ function timerHandler(user_data) {
             SetVirtualComponentValue(componentId + 2, energyConsumedYearlyKWh, function() {});
         }
     }
+
     // Konsolenausgabe und Zurücksetzen
     logBasedOnUptime();
     resetCounterIfMidnight();
@@ -218,8 +242,12 @@ checkAndCreateVirtualComponent(componentName, componentId, function() {
                     energyConsumedMonthlyKWh = value;
                     LoadVirtualComponentValue(componentId + 2, function(value) {
                         energyConsumedYearlyKWh = value;
+
                         let user_data = { counter10: 0 };
                         Timer.set(1000, true, timerHandler, user_data);
                     });
                 });
             });
+        });
+    });
+});
